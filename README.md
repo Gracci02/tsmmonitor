@@ -68,8 +68,7 @@ Enter here your server(s) like described below. The "defaultserver" is the serve
                 </server>  
         </serverarray>  
   </config>
-</code>   
-```xml
+```
   
 Usage
 ----
