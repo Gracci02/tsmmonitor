@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<config>
+        <timeout>90</timeout>
+        <cellcolors>
+                <color>
+                        <name>green</name>
+                        <shade>#57E964</shade>
+                        <shade>#5FFC6F</shade>
+                </color>
+                <color>
+                        <name>red</name>
+                        <shade>#F02214</shade>
+                        <shade>#FF0000</shade>
+                </color>
+                <color>
+                        <name>yellow</name>
+                        <shade>gold</shade>
+                        <shade>yellow</shade>
+                </color>
+        </cellcolors>
+</config>

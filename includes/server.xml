@@ -1,0 +1,26 @@
+<config>
+        <serverarray>
+		<defaultserver>TSMSRV1</defaultserver>
+                <server>
+                        <servername>TSMSRV1</servername>
+                        <description>Server 1</description>
+                        <ip>xxx.xx.x.xxx</ip>
+			<port>1500</port>
+			<libraryclient>no</libraryclient>
+                </server>
+                <server>
+                        <servername>TSMSRV2</servername>
+                        <description>Server 2</description>
+                        <ip>xxx.xx.xxx.xx</ip>
+                        <port>1500</port>
+			<libraryclient>yes</libraryclient>
+                </server>
+                <server>
+                        <servername>TSMSRV3</servername>
+                        <description>Server 3</description>
+                        <ip>xxx.xx.xxx.xx</ip>
+                        <port>1500</port>
+			<libraryclient>yes</libraryclient>
+                </server>
+        </serverarray>
+</config>

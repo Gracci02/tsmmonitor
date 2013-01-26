@@ -1,0 +1,1257 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<config>
+        <navigation>
+                <mainmenuitem>
+                        <name>nodes</name>
+                        <label>Nodes</label>
+                        <submenuitem>
+                                <name>nodeslist</name>
+                                <label>All Nodes</label>
+                                <query>select NODE_NAME, domain_name, platform_name, client_os_level, TCP_ADDRESS, trim(char(client_version)) ||'.'|| trim(char(client_release)) ||'.'|| trim(char(client_level))  ||'.'|| trim(char(client_sublevel)) as version from nodes</query>
+				<info>This query lists all existing nodes, their domains etc.</info>
+				<orderby>NODE_NAME</orderby>
+                                <header>
+                                        <column><label>Node Name</label><name>NODE_NAME</name></column>
+                                        <column><label>Domain</label><name>domain_name</name></column>
+                                        <column><label>OS</label><name>platform_name</name></column>
+                                        <column><label>OS Level</label><name>client_os_level</name></column>
+                                        <column><label>IP</label><name>TCP_ADDRESS</name></column>
+                                        <column><label>Version</label><name>version</name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>nodesnotaccessed</name>
+                                <label>Inactive Nodes</label>
+                                <query>select NODE_NAME, domain_name, platform_name, LASTACC_TIME from nodes where LASTACC_TIME LESS current_timestamp - 24 hours</query>
+				<info>A list of all nodes that haven't been accessed since 24 hours.</info>
+				<orderby>LASTACC_TIME</orderby>
+                                <header>
+                                        <column><label>Node Name</label><name>NODE_NAME</name></column>
+                                        <column><label>Domain</label><name>domain_name</name></column>
+                                        <column><label>OS</label><name>platform_name</name></column>
+                                        <column><label>Last Accessed</label><name>LASTACC_TIME</name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>nodesfilespaces</name>
+                                <label>Filespaces of a Node</label>
+                                <query>select nodes.node_name as NODENAME, filespaces.filespace_name as FSNAME, substr(char(filespaces.backup_end), 1, 10) as FS_LASTBACKUP from nodes, filespaces where nodes.node_name='SEARCHFIELD' AND filespaces.node_name=nodes.node_name</query>
+                                <info>A list of all filespaces and it's last backup</info>
+                                <orderby>NODENAME</orderby>
+				<searchfield>Nodename</searchfield>
+                                <header>
+                                        <column><label>Node Name</label><name>NODENAME</name></column>
+                                        <column><label>Filespace</label><name>FSNAME</name></column>
+                                        <column><label>Last Backup</label><name>FS_LASTBACKUP</name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>stalledfs</name>
+                                <label>Stalled Filespaces</label>
+                                <query>select node_name, filespace_name, backup_start, backup_end from filespaces where cast((current_timestamp-backup_end)days as decimal) >= 3 and node_name LIKE 'SEARCHFIELD%'</query>
+                                <info>A list of all filespaces that might be stalled (and have not been backed up in the last 3 days)</info>
+                                <orderby>node_name</orderby>
+                                <searchfield>Nodename ('%' for all)</searchfield>
+                                <header>
+                                        <column><label>Node Name</label><name>node_name</name></column>
+                                        <column><label>Filespace</label><name>filespace_name</name></column>
+                                        <column><label>Backup Start</label><name>backup_start</name></column>
+                                        <column><label>Backup End</label><name>backup_end</name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>spacenode</name>
+                                <label>Space Usage / Node</label>
+                                <query>SELECT o.node_name||' ' as NODE_NAME, sum(cast(o.physical_mb/1024 as decimal (10,2))) as TOTAL_GB, sum(cast(o.num_files as decimal (10,0))) as TOTAL_FILES_STORED, dec(dec(sum(o.num_files))/(select dec(sum(num_files)) from occupancy)*100,6,4) as PCT_FILES_STORED, n.platform_name  FROM occupancy o,nodes n  WHERE o.node_name=n.node_name GROUP BY n.node_name, o.node_name, n.platform_name</query>
+				<info>This query list all nodes and their total space consumption in GB</info>
+				<orderby>TOTAL_GB</orderby>
+                                <header>
+                                        <column><label>Node Name</label><name>NODE_NAME</name></column>
+                                        <column><label>Total GB</label><name>TOTAL_GB</name></column>
+                                        <column><label>Total Files stored</label><name>TOTAL_FILES_STORED</name></column>
+                                        <column><label>% of total files</label><name>PCT_FILES_STORED</name></column>
+                                        <column><label>Platform</label><name>n.platform_name</name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>datanode</name>
+                                <label>Data and Tapes / Node</label>
+                                <query>select vu.node_name, ao.total_mb, count(distinct vu.volume_name) as tapes, ao.total_mb/count(distinct vu.volume_name) as mbtape from volumeusage vu, auditocc ao where vu.node_name=ao.node_name group by vu.node_name, ao.total_mb</query>
+				<info>This query shows how many data the nodes are using and over how many tapes they are spread.</info>
+				<orderby>ao.total_mb</orderby>
+                                <header>
+                                        <column><label>Node</label><name>vu.node_name</name></column>
+                                        <column><label>Total MB</label><name>ao.total_mb</name></column>
+                                        <column><label>Tapes</label><name>tapes</name></column>
+                                        <column><label>MB/Tape</label><name>mbtape</name></column>
+                                </header>
+                                <cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>tapesnode</name>
+                                <label>Tapes used by Node</label>
+                                <query>select distinct volume_name,stgpool_name from volumeusage where node_name='SEARCHFIELD'</query>
+				<info>Search for a node name and get all tapes that are used by ths node</info>
+                                <orderby>volume_name</orderby>
+				<searchfield>Nodename</searchfield>
+                                <header>
+                                        <column><label>Volume Name</label><name>volume_name</name></column>
+                                        <column><label>Storage Pool</label><name>stgpool_name</name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>nodesontape</name>
+                                <label>Nodes on Tape</label>
+                                <query>select distinct node_name from volumeusage where volume_name='SEARCHFIELD'</query>
+				<info>Search for a volume and get all nodes that are stored on it.</info>
+                                <orderby>node_name</orderby>
+                                <searchfield>Volume Name</searchfield>
+                                <header>
+                                        <column><label>Node Name</label><name>node_name</name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                </mainmenuitem>
+                <mainmenuitem>
+                        <name>server</name>
+                        <label>Server</label>
+                        <submenuitem>
+				<name>serverinfo_vertical</name>
+				<label>Server Overview</label>
+                                <query>select SERVER_NAME, SERVER_HLA, SERVER_LLA, INSTALL_DATE, RESTART_DATE, AVAILABILITY, LASTLICENSEAUDIT, LICENSECOMPLIANCE, LOGMODE, CROSSDEFINE, PLATFORM, VERSION, RELEASE, LEVEL, SUBLEVEL from status</query>
+				<info>Some general information about the current tsm server</info>
+				<orderby>SERVER_NAME</orderby>
+                                <header>
+					<column><label>Server Name</label><name>SERVER_NAME</name></column>
+					<column><label>IP</label><name>SERVER_HLA</name></column>
+					<column><label>port</label><name>SERVER_LLA</name></column>
+					<column><label>Installation Date/Time</label><name>INSTALL_DATE</name></column>
+					<column><label>Restart Date/Time</label><name>RESTART_DATE</name></column>
+					<column><label>Available</label><name>AVAILABILITY</name></column>
+					<column><label>Last Lic Audit</label><name>LASTLICENSEAUDIT</name></column>
+					<column><label>License Compliance</label><name>LICENSECOMPLIANCE</name></column>
+					<column><label>Log Mode</label><name>LOGMODE</name></column>
+					<column><label>Crossdefine</label><name>CROSSDEFINE</name></column>
+					<column><label>Platform</label><name>PLATFORM</name></column>
+					<column><label>Ver</label><name>VERSION</name></column>
+					<column><label>Rel</label><name>RELEASE</name></column>
+					<column><label>Lvl</label><name>LEVEL</name></column>
+					<column><label>SubLv</label><name>SUBLEVEL</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>otherservers</name>
+                                <label>Other Servers</label>
+                                <query>select SERVER_NAME, HL_ADDRESS, LL_ADDRESS, DESCRIPTION, LASTACC_TIME from servers</query>
+				<info>Some information about other tsm servers known to the current one</info>
+				<orderby>SERVER_NAME</orderby>
+                                <header>
+                                        <column><label>Server Name</label><name>SERVER_NAME</name></column>
+                                        <column><label>IP</label><name>HL_ADDRESS</name></column>
+					<column><label>port</label><name>LL_ADDRESS</name></column>
+                                        <column><label>Desciption</label><name>DESCRIPTION</name></column>
+                                        <column><label>Last Access</label><name>LASTACC_TIME</name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>database_vertical</name>
+				<label>Database</label>
+                                <query>select AVAIL_SPACE_MB, CAPACITY_MB, MAX_EXTENSION_MB, MAX_REDUCTION_MB, PAGE_SIZE, USABLE_PAGES, USED_PAGES, PCT_UTILIZED, MAX_PCT_UTILIZED, PHYSICAL_VOLUMES, BUFF_POOL_PAGES, TOTAL_BUFFER_REQ, CACHE_HIT_PCT, CACHE_WAIT_PCT, NUM_BACKUP_INCR, BACKUP_CHG_MB, BACKUP_CHG_PCT, LAST_BACKUP_DATE, DB_REORG_EST, DB_REORG_EST_TIME from db</query>
+				<orderby></orderby>
+				<info>Some information about your tsm database</info>
+                                <header>
+					<column><label>Avail Space MB</label><name>AVAIL_SPACE_MB</name></column>
+					<column><label>Cty MB</label><name>CAPACITY_MB</name></column>
+					<column><label>Max Ext MB</label><name>MAX_EXTENSION_MB</name></column>
+					<column><label>Max Red MB</label><name>MAX_REDUCTION_MB</name></column>
+					<column><label>Page Size</label><name>PAGE_SIZE</name></column>
+					<column><label>Usable Pages</label><name>USABLE_PAGES</name></column>
+					<column><label>Used Pages</label><name>USED_PAGES</name></column>
+					<column><label>% Util.</label><name>PCT_UTILIZED</name></column>
+					<column><label>Max % Util.</label><name>MAX_PCT_UTILIZED</name></column>
+					<column><label>Phys Volumes</label><name>PHYSICAL_VOLUMES</name></column>
+					<column><label>Buff Pool Pages</label><name>BUFF_POOL_PAGES</name></column>
+					<column><label>Total Buff Req</label><name>TOTAL_BUFFER_REQ</name></column>
+					<column><label>Cache Hit %</label><name>CACHE_HIT_PCT</name></column>
+					<column><label>Cache Wait</label><name>CACHE_WAIT_PCT</name></column>
+					<column><label>Num Backup Incr</label><name>NUM_BACKUP_INCR</name></column>
+					<column><label>Backup Chg MB</label><name>BACKUP_CHG_MB</name></column>
+					<column><label>Backup Chg %</label><name>BACKUP_CHG_PCT</name></column>
+					<column><label>Last Backup</label><name>LAST_BACKUP_DATE</name></column>
+					<column><label>DB Reorg Est</label><name>DB_REORG_EST</name></column>
+					<column><label>DB Reorg Est Time</label><name>DB_REORG_EST_TIME</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>mgmtclasses</name>
+                                <label>Management Classes</label>
+                                <query>select DOMAIN_NAME, SET_NAME, CLASS_NAME, DEFAULTMC, DESCRIPTION from mgmtclasses</query>
+                                <info>A list of all management classes defined in the current tsm server</info>
+                                <orderby>DOMAIN_NAME</orderby>
+                                <header>
+                                        <column><label>Domain</label><name>DOMAIN_NAME</name></column>
+                                        <column><label>Policy Set</label><name>SET_NAME</name></column>
+                                        <column><label>Class Name</label><name>CLASS_NAME</name></column>
+                                        <column><label>Default Class</label><name>DEFAULTMC</name></column>
+                                        <column><label>Description</label><name>DESCRIPTION</name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>policysets</name>
+				<label>Policy Sets</label>
+                                <query>select DOMAIN_NAME, SET_NAME, DEFMGMTCLASS, DESCRIPTION from policysets</query>
+				<info>This is a list of all policy sets defined in the current tsm server</info>
+				<orderby>DOMAIN_NAME</orderby>
+                                <header>
+					<column><label>Domain</label><name>DOMAIN_NAME</name></column>
+					<column><label>Policy Set</label><name>SET_NAME</name></column>
+					<column><label>DEFMGMTCLASS</label><name>DEFMGMTCLASS</name></column>
+					<column><label>Description</label><name>DESCRIPTION</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>domains</name>
+				<label>Domains</label>
+                                <query>select DOMAIN_NAME, SET_LAST_ACTIVATED, DEFMGMTCLASS, NUM_NODES, BACKRETENTION, ARCHRETENTION, DESCRIPTION, ACTIVESTGPOOLS from domains</query>
+				<info>This is a list of all domains defined in the current tsm server</info>
+				<orderby>DOMAIN_NAME</orderby>
+                                <header>
+					<column><label>Domain</label><name>DOMAIN_NAME</name></column>
+					<column><label>Last Activated Set</label><name>SET_LAST_ACTIVATED</name></column>
+					<column><label>DEFMGMTCLASS</label><name>DEFMGMTCLASS</name></column>
+					<column><label># Nodes</label><name>NUM_NODES</name></column>
+					<column><label>Backup Retention</label><name>BACKRETENTION</name></column>
+					<column><label>Archive Retention</label><name>ARCHRETENTION</name></column>
+					<column><label>Description</label><name>DESCRIPTION</name></column>
+					<column><label>Active Stgpools</label><name>ACTIVESTGPOOLS</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>backupcopygroups</name>
+                                <label>Backup Copygroups</label>
+                                <query>SELECT domain_name, class_name, VEREXISTS, VERDELETED, RETEXTRA, RETONLY, destination FROM bu_copygroups WHERE set_name='ACTIVE'</query>
+                                <info>Destination pools and other information about all backup copygroups</info>
+                                <orderby>domain_name</orderby>
+                                <header>
+                                        <column><label>Domain</label><name>DOMAIN_NAME</name></column>
+                                        <column><label>Managementclass</label><name>class_name</name></column>
+                                        <column><label>VerExists</label><name>VEREXISTS</name></column>
+                                        <column><label>VerDeleted</label><name>VERDELETED</name></column>
+                                        <column><label>RetExtra</label><name>RETEXTRA</name></column>
+                                        <column><label>RetOnly</label><name>RETONLY</name></column>
+                                        <column><label>Destination Pool</label><name>DESTINATION</name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>archivecopygroups</name>
+                                <label>Archive Copygroups</label>
+                                <query>SELECT domain_name, class_name, retver, destination FROM ar_copygroups where set_name='ACTIVE'</query>
+                                <info>Destination pools and other information about all archive copygroups</info>
+                                <orderby>domain_name</orderby>
+                                <header>
+                                        <column><label>Domain</label><name>DOMAIN_NAME</name></column>
+                                        <column><label>Managementclass</label><name>class_name</name></column>
+                                        <column><label>RetVer</label><name>RETVER</name></column>
+                                        <column><label>Destination Pool</label><name>DESTINATION</name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>drives</name>
+				<label>Drives</label>
+                                <query>select LIBRARY_NAME, DRIVE_NAME, DEVICE_TYPE, ONLINE, ELEMENT, DRIVE_STATE, ALLOCATED_TO, CLEAN_FREQ, DRIVE_SERIAL, VOLUME_NAME from drives</query>
+				<info>This is a list of all tape drives defined in the current tsm server</info>
+				<orderby>DRIVE_NAME</orderby>
+				<alerting>
+					<alert_comp>equal</alert_comp>
+					<alert_val>NO</alert_val>
+					<alert_field>3</alert_field>
+					<alert_col>red</alert_col>
+					<ok_col>green</ok_col>
+				</alerting>
+                                <header>
+					<column><label>Library</label><name>LIBRARY_NAME</name></column>
+					<column><label>Name</label><name>DRIVE_NAME</name></column>
+					<column><label>Type</label><name>DEVICE_TYPE</name></column>
+					<column><label>Online</label><name>ONLINE</name></column>
+					<column><label>Element</label><name>ELEMENT</name></column>
+					<column><label>State</label><name>DRIVE_STATE</name></column>
+					<column><label>Allocated To</label><name>ALLOCATED_TO</name></column>
+					<column><label>Clean Freq</label><name>CLEAN_FREQ</name></column>
+					<column><label>Serial #</label><name>DRIVE_SERIAL</name></column>
+					<column><label>Volume</label><name>VOLUME_NAME</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>yes</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>paths</name>
+				<label>Paths</label>
+                                <query>select SOURCE_NAME, SOURCE_TYPE, DESTINATION_NAME, DESTINATION_TYPE, LIBRARY_NAME, NODE_NAME, DEVICE, EXTERNAL_MANAGER, LUN, DIRECTORY, ONLINE from paths</query>
+				<info>This is a list of all paths defined in the current tsm server</info>
+				<orderby>SOURCE_NAME</orderby>
+				<alerting>
+					<alert_comp>equal</alert_comp>
+					<alert_val>NO</alert_val>
+					<alert_field>10</alert_field>
+					<alert_col>red</alert_col>
+					<ok_col>green</ok_col>
+				</alerting>
+                                <header>
+					<column><label>Source Name</label><name>SOURCE_NAME</name></column>
+					<column><label>Source Type</label><name>SOURCE_TYPE</name></column>
+					<column><label>Dest Name</label><name>DESTINATION_NAME</name></column>
+					<column><label>Dest Type</label><name>DESTINATION_TYPE</name></column>
+					<column><label>Library</label><name>LIBRARY_NAME</name></column>
+					<column><label>Node Name</label><name>NODE_NAME</name></column>
+					<column><label>Device</label><name>DEVICE</name></column>
+					<column><label>External Manager</label><name>EXTERNAL_MANAGER</name></column>
+					<column><label>Lun</label><name>LUN</name></column>
+					<column><label>Directory</label><name>DIRECTORY</name></column>
+					<column><label>Online</label><name>Online</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>yes</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>drmedia</name>
+                                <label>Disaster Recovery Media</label>
+                                <query>select VOLUME_NAME, STGPOOL_NAME, LIB_NAME, VOLTYPE, UPD_DATE, LOCATION, STATE from drmedia</query>
+                                <info>A list of all available DR media</info>
+                                <orderby>VOLUME_NAME</orderby>
+                                <alerting>
+                                        <alert_comp>notequal</alert_comp>
+                                        <alert_val>MOUNTABLE</alert_val>
+                                        <alert_field>6</alert_field>
+                                        <alert_col>red</alert_col>
+                                        <ok_col>green</ok_col>
+                                </alerting>
+                                <header>
+                                        <column><label>Volume Name</label><name>VOLUME_NAME</name></column>
+                                        <column><label>Storage Pool</label><name>STGPOOL_NAME</name></column>
+                                        <column><label>Library</label><name>LIB_NAME</name></column>
+                                        <column><label>Volume Type</label><name>VOLTYPE</name></column>
+                                        <column><label>Last Update</label><name>UPD_DATE</name></column>
+                                        <column><label>Location</label><name>LOCATION</name></column>
+                                        <column><label>State</label><name>STATE</name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                </mainmenuitem>
+                <mainmenuitem>
+                        <name>backup</name>
+                        <label>Backup / Archive</label>
+                        <submenuitem>
+				<name>lastnight</name>
+				<label>Backup Status</label>
+                                <query>select Entity, Successful, cast(float(sum(bytes))/1024/1024/1024 as dec(8,3)) as GB, Examined, Affected, Failed from summary where activity='BACKUP' and cast((current_timestamp-start_time)hours as decimal(8,0)) LESS 24 group by Entity,Successful,Examined,AFFECTED,Failed</query>
+				<info>A list of all backups that have been started during the last 24 hours</info>
+				<orderby>Successful</orderby>
+				<alerting>
+					<alert_comp>equal</alert_comp>
+					<alert_val>NO</alert_val>
+					<alert_field>1</alert_field>
+					<alert_col>red</alert_col>
+					<ok_col>green</ok_col>
+				</alerting>
+                                <header>
+					<column><label>Entity</label><name>Entity</name></column>
+					<column><label>Successful</label><name>Successful</name></column>
+					<column><label>GB</label><name>GB</name></column>
+					<column><label>Examined</label><name>Examined</name></column>
+					<column><label>Affected</label><name>Affected</name></column>
+					<column><label>Failed</label><name>failed</name></column>
+				</header>
+				<cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>datetimenode</name>
+                                <label>Backup Times / Node</label>
+                                <query>SELECT entity AS "Node_name", CAST(sum(bytes/1024/1024/1024) AS decimal(8,3)) AS "GB_xfer", start_time, end_time, END_TIME-START_TIME as duration, comm_wait, Affected, Failed, Successful FROM summary WHERE activity='BACKUP' AND entity='SEARCHFIELD' group by start_time, end_time, Successful,Examined,Affected,Failed,entity,comm_wait</query>
+				<info>Search for a node name and get a list of all backups performed on this node</info>
+                                <orderby>start_time</orderby>
+                                <searchfield>Node Name</searchfield>
+				<alerting>
+					<alert_comp>equal</alert_comp>
+					<alert_val>NO</alert_val>
+					<alert_field>8</alert_field>
+					<alert_col>red</alert_col>
+					<ok_col>green</ok_col>
+				</alerting>
+                                <header>
+                                        <column><label>Node Name</label><name>Node_name</name></column>
+                                        <column><label>TX/GB</label><name>GB_xfer</name></column>
+                                        <column><label>Start Time</label><name>start_time</name></column>
+                                        <column><label>End Time</label><name>end_time</name></column>
+                                        <column><label>Duration</label><name>duration</name></column>
+                                        <column><label>Comm Wait</label><name>comm_wait</name></column>
+                                        <column><label>Files</label><name>Affected</name></column>
+                                        <column><label>Failed</label><name>Failed</name></column>
+                                        <column><label>OK?</label><name>Successful</name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>datetime</name>
+				<label>Backup Times / 24h</label>
+                                <query>SELECT entity AS "Node_name", CAST(sum(bytes/1024/1024/1024) AS decimal(8,3)) AS "GB_xfer", start_time, end_time, END_TIME-START_TIME as duration, comm_wait, Affected, Failed, Successful FROM summary WHERE activity='BACKUP' AND start_time>=current_timestamp - 24 hours group by start_time, end_time, Successful,Examined,Affected,Failed,entity,comm_wait</query>
+				<info>This query gives you an overview over all backups performed during the last 24 hours.</info>
+				<orderby>start_time</orderby>
+				<alerting>
+					<alert_comp>equal</alert_comp>
+					<alert_val>NO</alert_val>
+					<alert_field>8</alert_field>
+					<alert_col>red</alert_col>
+					<ok_col>green</ok_col>
+				</alerting>
+                                <header>
+					<column><label>Node Name</label><name>Node_name</name></column>
+					<column><label>TX/GB</label><name>GB_xfer</name></column>
+					<column><label>Start Time</label><name>start_time</name></column>
+					<column><label>End Time</label><name>end_time</name></column>
+					<column><label>Duration</label><name>duration</name></column>
+					<column><label>Comm Wait</label><name>comm_wait</name></column>
+					<column><label>Files</label><name>Affected</name></column>
+					<column><label>Failed</label><name>Failed</name></column>
+					<column><label>OK?</label><name>Successful</name></column>
+				</header>
+				<cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>backup_dynamictimetable</name>
+                                <label>Backup Timetable</label>
+                                <query>SELECT entity AS "Node_name", start_time, end_time, Successful FROM summary WHERE activity='BACKUP' AND end_time>=current_timestamp - SEARCHFIELD hours and start_time LESS current_timestamp - ( SEARCHFIELD hours - 24 hours )  group by start_time, end_time, Successful,Examined,Affected,Failed,entity,comm_wait</query>
+				<info>A graphical chart which represents all backups performed during the last 24 hours.</info>
+                                <orderby>"start_time"</orderby>
+                                <searchfield>placeholder</searchfield>
+                                <header>
+                                        <column><label>Node Name</label><name></name></column>
+                                        <column><label>Start Time</label><name></name></column>
+                                        <column><label>End Time</label><name></name></column>
+                                        <column><label>status</label><name></name></column>
+                                </header>
+                                <cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>averagebackup</name>
+                                <label>Average Backup Time / Node</label>
+				<query>SELECT avg(end_time - start_time) FROM summary WHERE ACTIVITY='BACKUP' AND entity='SEARCHFIELD'</query>
+				<info>Average backup time of a specific node.</info>
+                                <orderby></orderby>
+                                <searchfield>Node Name</searchfield>
+                                <header>
+                                        <column><label>Average Backup Time</label><name></name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>archivestatus</name>
+                                <label>Archive Status</label>
+                                <query>select Entity, Successful, cast(float(sum(bytes))/1024/1024/1024 as dec(8,3)) as GB, Examined, Affected, Failed from summary where activity='ARCHIVE' and cast((current_timestamp-start_time)hours as decimal(8,0)) LESS 24 group by Entity,Successful,Examined,AFFECTED,Failed</query>
+				<info>A list of all archives that have been started during the last 24 hours</info>
+                                <orderby>Successful</orderby>
+				<alerting>
+					<alert_comp>equal</alert_comp>
+					<alert_val>NO</alert_val>
+					<alert_field>1</alert_field>
+					<alert_col>red</alert_col>
+					<ok_col>green</ok_col>
+				</alerting>
+                                <header>
+                                        <column><label>Entity</label><name>Entity</name></column>
+                                        <column><label>Successful</label><name>Successful</name></column>
+                                        <column><label>GB</label><name>GB</name></column>
+                                        <column><label>Examined</label><name>Examined</name></column>
+                                        <column><label>Affected</label><name>Affected</name></column>
+                                        <column><label>Failed</label><name>failed</name></column>
+                                </header>
+                                <cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>archivdatetimenode</name>
+                                <label>Archive Times / Node</label>
+                                <query>SELECT entity AS "Node_name", CAST(sum(bytes/1024/1024/1024) AS decimal(8,3)) AS "GB_xfer", start_time, end_time, END_TIME-START_TIME as duration, comm_wait, Affected, Failed, Successful FROM summary WHERE activity='ARCHIVE' AND entity='SEARCHFIELD' group by start_time, end_time, Successful,Examined,Affected,Failed,entity,comm_wait</query>
+				<info>Search for a node name and get a list of all archives performed on this node</info>
+                                <orderby>start_time</orderby>
+                                <searchfield>Node Name</searchfield>
+				<alerting>
+					<alert_comp>equal</alert_comp>
+					<alert_val>NO</alert_val>
+					<alert_field>8</alert_field>
+					<alert_col>red</alert_col>
+					<ok_col>green</ok_col>
+				</alerting>
+                                <header>
+                                        <column><label>Node Name</label><name>Node_name</name></column>
+                                        <column><label>TX/GB</label><name>GB_xfer</name></column>
+                                        <column><label>Start Time</label><name>start_time</name></column>
+                                        <column><label>End Time</label><name>end_time</name></column>
+                                        <column><label>Duration</label><name>duration</name></column>
+                                        <column><label>Comm Wait</label><name>comm_wait</name></column>
+                                        <column><label>Files</label><name>Affected</name></column>
+                                        <column><label>Failed</label><name>Failed</name></column>
+                                        <column><label>OK?</label><name>Successful</name></column>
+                                </header>
+                                <cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>archivdatetime</name>
+                                <label>Archive Times / 24h</label>
+                                <query>SELECT entity AS "Node_name", CAST(sum(bytes/1024/1024/1024) AS decimal(8,3)) AS "GB_xfer", start_time, end_time, END_TIME-START_TIME as duration, comm_wait, Affected, Failed, Successful FROM summary WHERE activity='ARCHIVE' AND start_time>=current_timestamp - 24 hours group by start_time, end_time, Successful,Examined,Affected,Failed,entity,comm_wait</query>
+				<info>This query gives you an overview over all archives performed during the last 24 hours.</info>
+                                <orderby>start_time</orderby>
+				<alerting>
+					<alert_comp>equal</alert_comp>
+					<alert_val>NO</alert_val>
+					<alert_field>8</alert_field>
+					<alert_col>red</alert_col>
+					<ok_col>green</ok_col>
+				</alerting>
+                                <header>
+                                        <column><label>Node Name</label><name>Node_name</name></column>
+                                        <column><label>TX/GB</label><name>GB_xfer</name></column>
+                                        <column><label>Start Time</label><name>start_time</name></column>
+                                        <column><label>End Time</label><name>end_time</name></column>
+                                        <column><label>Duration</label><name>duration</name></column>
+                                        <column><label>Comm Wait</label><name>comm_wait</name></column>
+                                        <column><label>Files</label><name>Affected</name></column>
+                                        <column><label>Failed</label><name>Failed</name></column>
+                                        <column><label>OK?</label><name>Successful</name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>archiv_dynamictimetable</name>
+                                <label>Archive Timetable</label>
+                                <query>SELECT entity AS "Node_name", start_time, end_time, Successful FROM summary WHERE activity='ARCHIVE' AND end_time>=current_timestamp - SEARCHFIELD hours and start_time LESS current_timestamp - ( SEARCHFIELD hours - 24 hours )  group by start_time, end_time, Successful,Examined,Affected,Failed,entity,comm_wait</query>
+				<info>A graphical chart which represents all archives performed during the last 24 hours.</info>
+                                <orderby>start_time</orderby>
+				<searchfield>placeholder</searchfield>
+                                <header>
+                                        <column><label>Node Name</label><name></name></column>
+                                        <column><label>Start Time</label><name></name></column>
+                                        <column><label>End Time</label><name></name></column>
+                                        <column><label>successful</label><name></name></column>
+                                </header>
+                                <cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                </mainmenuitem>
+                <mainmenuitem>
+                        <name>schedules</name>
+                        <label>Schedules</label>
+                        <submenuitem>
+				<name>clientscheddef</name>
+				<label>Client Schedules Definitions</label>
+                                <query>select schedule_name, domain_name, description, action, priority, starttime, period, perunits, dayofweek, sched_style from client_schedules</query>
+				<info>A list of all client schedules defined in the current tsm server.</info>
+				<orderby>schedule_name</orderby>
+                                <header>
+					<column><label>Schedule Name</label><name>schedule_name</name></column>
+					<column><label>Domain</label><name>domain_name</name></column>
+					<column><label>Description</label><name>description</name></column>
+					<column><label>Action</label><name>action</name></column>
+					<column><label>Prio</label><name>priority</name></column>
+					<column><label>Start</label><name>starttime</name></column>
+					<column><label>Period</label><name>period</name></column>
+					<column><label>Unit</label><name>perunits</name></column>
+					<column><label>Day of Week</label>dayofweek<name></name></column>
+					<column><label>Style</label><name>sched_style</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>clientsched</name>
+				<label>Client Schedules Results</label>
+                                <query>select node_name, schedule_name, scheduled_start, ACTUAL_START,COMPLETED, status, result, reason from events where scheduled_start >= current_timestamp - 24 hours and node_name != ''</query>
+				<info>This query shows the start times and results of all client schedule that were scheduled during the last 24 hours.</info>
+				<orderby>node_name</orderby>
+				<alerting>
+					<alert_comp>notequal</alert_comp>
+					<alert_val>Completed</alert_val>
+					<alert_field>5</alert_field>
+					<alert_col>red</alert_col>
+					<ok_col>green</ok_col>
+				</alerting>
+                                <header>
+					<column><label>Node Name</label><name>node_name</name></column>
+					<column><label>Schedule Name</label><name>schedule_name</name></column>
+					<column><label>Scheduled Start</label><name>scheduled_start</name></column>
+					<column><label>Actual Start</label><name>actual_start</name></column>
+					<column><label>End time</label><name>completed</name></column>
+					<column><label>Status</label><name>status</name></column>
+					<column><label>Result</label><name>result</name></column>
+					<column><label>Reason</label><name>reason</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>clientsched_statictimetable</name>
+				<label>Client Schedules Timetable</label>
+                                <query>select Node_NAME,ACTUAL_START,COMPLETED,status from events where NODE_NAME != ''</query>
+				<info>This graphical chart shows the start and end times of all client schedule that were scheduled during the last 24 hours.</info>
+				<orderby></orderby>
+                                <header>
+					<column><label>Node Name</label><name>Node_NAME</name></column>
+					<column><label>Start Time</label><name>ACTUAL_START</name></column>
+					<column><label>End Time</label><name>COMPLETED</name></column>
+					<column><label>Status</label><name>STATUS</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+			<submenuitem>
+				<name>adminscheddef</name>
+				<label>Admin Schedules Definitions</label>
+				<query>select schedule_name, command, description, active, priority, starttime, period, perunits, dayofweek, sched_style from admin_schedules</query>
+				<info>A list of all administrative schedules defined in the current tsm server.</info>
+				<orderby>schedule_name</orderby>
+                                <header>
+					<column><label>Schedule Name</label><name>schedule_name</name></column>
+					<column><label>Command</label><name>command</name></column>
+					<column><label>Description</label><name>description</name></column>
+					<column><label>Active?</label><name>active</name></column>
+					<column><label>Prio</label><name>priority</name></column>
+					<column><label>Start</label><name>starttime</name></column>
+					<column><label>Period</label><name>period</name></column>
+					<column><label>Unit</label><name>perunits</name></column>
+					<column><label>Day of Week</label><name>dayofweek</name></column>
+					<column><label>Style</label><name>sched_style</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+			<submenuitem>
+				<name>adminsched</name>
+				<label>Admin Schedules Results</label>
+				<query>select schedule_name, scheduled_start, ACTUAL_START,COMPLETED,status, result, reason from events where scheduled_start >= current_timestamp - 24 hours and node_name is null</query>
+				<info>This query shows the start times and results of all administrative schedule that were scheduled during the last 24 hours.</info>
+				<orderby>schedule_name</orderby>
+				<header>
+					<column><label>Schedule Name</label><name>schedule_name</name></column>
+					<column><label>Scheduled Start</label><name>scheduled_start</name></column>
+					<column><label>Actual Start</label><name>actual_start</name></column>
+					<column><label>End time</label><name>completed</name></column>
+					<column><label>Status</label><name>status</name></column>
+					<column><label>Result</label><name>result</name></column>
+					<column><label>Reason</label><name>reason</name></column>
+				</header>
+				<alerting>
+					<alert_comp>notequal</alert_comp>
+					<alert_val>Completed</alert_val>
+					<alert_field>4</alert_field>
+					<alert_col>red</alert_col>
+					<ok_col>green</ok_col>
+				</alerting>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+			</submenuitem>
+                        <submenuitem>
+				<name>adminsched_statictimetable</name>
+				<label>Admin Schedules Timetable</label>
+                                <query>select SCHEDULE_NAME,ACTUAL_START,COMPLETED, STATUS from events where NODE_NAME is NULL and STATUS='Completed'</query>
+				<info>This graphical chart shows the start and end times of all client schedule that were scheduled during the last 24 hours.</info>
+				<orderby>SCHEDULE_NAME</orderby>
+                                <header>
+					<column><label>Schedule Name</label><name>SCHEDULE_NAME</name></column>
+					<column><label>Start Time</label><name>ACTUAL_START</name></column>
+					<column><label>End Time</label><name>COMPLETED</name></column>
+					<column><label>Status</label><name>STATUS</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>assos</name>
+				<label>Assossiations</label>
+                                <query>select domain_NAME, schedule_name, node_name, chg_time from associations</query>
+				<info>This query lists all defined schedule associations.</info>
+				<orderby>domain_NAME</orderby>
+                                <header>
+					<column><label>Domain</label><name>domain_NAME</name></column>
+					<column><label>Schedule</label><name>schedule_name</name></column>
+					<column><label>Node</label><name>node_name</name></column>
+					<column><label>Change Time</label><name>chg_time</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>migration</name>
+				<label>Migration</label>
+                                <query>SELECT ENTITY, Activity, Start_Time as "Start_Time", End_Time, END_TIME-START_TIME as duration, Examined, Affected, cast((BYTES/1048576)/1024 as decimal(12,3)) as GB, FAILED, Mediaw, Processes, Successful FROM ADSM.SUMMARY where ACTIVITY like upper('MIGRATION') and date(start_time) >= current_date -1 days</query>
+				<info>Information about all migration processes that ran during the last 24 hours.</info>
+				<orderby>Start_Time</orderby>
+				<alerting>
+					<alert_comp>equal</alert_comp>
+					<alert_val>NO</alert_val>
+					<alert_field>11</alert_field>
+					<alert_col>red</alert_col>
+					<ok_col>green</ok_col>
+				</alerting>
+                                <header>
+					<column><label>Activity</label><name>ENTITY</name></column>
+					<column><label>Process</label><name>Activity</name></column>
+					<column><label>Start Time</label><name>Start_Time</name></column>
+					<column><label>End Time</label><name>End_Time</name></column>
+					<column><label>Runtime</label><name>duration</name></column>
+					<column><label>Files/Dirs checked</label><name>Examined</name></column>
+					<column><label>Files/Dirs transfered</label><name>Affected</name></column>
+					<column><label>GB transfered</label><name>GB</name></column>
+					<column><label>Failures</label><name>FAILED</name></column>
+					<column><label>Mediaw</label><name>Mediaw</name></column>
+					<column><label>Processes</label><name>Processes</name></column>
+					<column><label>Successful</label><name>Successful</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>migration_dynamictimetable</name>
+				<label>Migration Timetable</label>
+                                <query>SELECT ENTITY, Start_Time as "Start_Time", End_Time, successful FROM ADSM.SUMMARY where ACTIVITY like upper('MIGRATION') and end_time >=current_timestamp - SEARCHFIELD hours and start_time LESS current_timestamp - ( SEARCHFIELD hours - 24 hours )</query>
+				<info>A graphical chat displaying all migration processes that ran during the last 24 hours.</info>
+				<orderby>"Start_Time"</orderby>
+				<searchfield>placeholder</searchfield>
+                                <header>
+					<column><label>Entity</label><name>SELECT ENTITY</name></column>
+					<column><label>Start Time</label><name>Start_Time</name></column>
+					<column><label>End Time</label><name>End_Time</name></column>
+					<column><label>Successful</label><name>Successful</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                </mainmenuitem>
+                <mainmenuitem>
+                        <name>activity</name>
+                        <label>Activity</label>
+                        <submenuitem>
+				<name>queryproc</name>
+				<label>Running Processes</label>
+                                <query>SELECT process_num, process, substr(char(start_time),1,19) AS START_TIME, substr(char(current_timestamp - start_time),1,10) as duration, cast(float(bytes_processed) /1024/1024 AS DEC(8,2)) AS MB, cast((cast(bytes_processed as dec(18,0))/cast((current_timestamp-start_time) seconds as decimal(18,0))) / 1024 / 1024 AS DEC (18,2)) as MBs, status FROM processes</query>
+				<info>This query lists all running processes on the current tsm server.</info>
+				<orderby>process_num</orderby>
+                                <header>
+					<column><label>Process Number</label><name>process_num</name></column>
+					<column><label>Process</label><name>process</name></column>
+					<column><label>Start Time</label><name>START_TIME</name></column>
+					<column><label>ELAPTIME (D HHMMSS)</label><name>duration</name></column>
+					<column><label>MB</label><name>MB</name></column>
+					<column><label>MB/s</label><name>MBs</name></column>
+					<column><label>Status</label><name>status</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>querysession</name>
+				<label>Active Sessions</label>
+                                <query>select SESSION_ID, substr(char(start_time),1,19) AS START_TIME, STATE, WAIT_SECONDS, cast(float(sum(BYTES_SENT))/1024/1024/1024 as dec(8,3)) as BSEND, cast(float(sum(BYTES_RECEIVED))/1024/1024/1024 as dec(8,3)) as received, CLIENT_NAME,CLIENT_PLATFORM, OUTPUT_VOL_ACCESS, INPUT_VOL_ACCESS, MOUNT_POINT_WAIT from sessions group by SESSION_ID, START_TIME, STATE, WAIT_SECONDS, CLIENT_NAME, INPUT_VOL_ACCESS, OUTPUT_VOL_ACCESS, MOUNT_POINT_WAIT, CLIENT_PLATFORM</query>
+				<info>This query lists all active sessions on the current tsm server.</info>
+				<orderby>SESSION_ID</orderby>
+                                <header>
+					<column><label>Session</label><name>SESSION_ID</name></column>
+					<column><label>Start Time</label><name>START_TIME</name></column>
+					<column><label>State</label><name>STATE</name></column>
+					<column><label>Wait (s)</label><name>WAIT_SECONDS</name></column>
+					<column><label>GB sent</label><name>BSEND</name></column>
+					<column><label>GB rcvd</label><name>received</name></column>
+					<column><label>Node</label><name>CLIENT_NAME</name></column>
+					<column><label>OS</label><name>CLIENT_PLATFORM</name></column>
+					<column><label>Output Volume</label><name>OUTPUT_VOL_ACCESS</name></column>
+					<column><label>Input Volume</label><name>INPUT_VOL_ACCESS</name></column>
+					<column><label>MP Wait</label><name>MOUNT_POINT_WAIT</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>querymount</name>
+				<label>Mount Status</label>
+                                <query>select LIBRARY_NAME, DRIVE_NAME, DRIVE_STATE, VOLUME_NAME, ALLOCATED_TO from drives where VOLUME_NAME is not null</query>
+				<info>This query lists all mounted volumes.</info>
+				<orderby>LIBRARY_NAME</orderby>
+                                <header>
+					<column><label>Library</label><name>LIBRARY_NAME</name></column>
+					<column><label>Drive</label><name>DRIVE_NAME</name></column>
+					<column><label>State</label><name>DRIVE_STATE</name></column>
+					<column><label>Volume</label><name>VOLUME_NAME</name></column>
+					<column><label>Allocated to</label><name>ALLOCATED_TO</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>yes</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>mounthistory_dynamictimetable</name>
+                                <label>Mount History</label>
+                                <query>select DRIVE_NAME, START_TIME, END_TIME from summary where DRIVE_NAME NOTEQUAL '' and end_time >=current_timestamp - SEARCHFIELD hours and start_time LESS current_timestamp - ( SEARCHFIELD hours - 24 hours )</query>
+                                <info>A graphical chart which represents all tape mounts during the last 24 hours.</info>
+                                <orderby>DRIVE_NAME</orderby>
+				<searchfield>placeholder</searchfield>
+                                <header>
+                                        <column><label>Drive Name</label><name></name></column>
+                                        <column><label>Start Time</label><name></name></column>
+                                        <column><label>End Time</label><name></name></column>
+                                </header>
+                                <cache>yes</cache>
+				<notforlibclient>yes</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>querywarnings</name>
+				<label>Warnings</label>
+                                <query>select DATE_TIME, MESSAGE from actlog where SEVERITY='W' </query>
+				<info>Warnings received from the tsm activity log.</info>
+				<orderby></orderby>
+                                <header>
+					<column><label>Time</label><name>DATE_TIME</name></column>
+					<column><label>Message</label><name>MESSAGE</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>queryerrors</name>
+				<label>Errors</label>
+                                <query>select DATE_TIME, MESSAGE from actlog where SEVERITY='E' </query>
+				<info>Errors received from the tsm activity log.</info>
+                                <header>
+					<column><label>Time</label><name>DATE_TIME</name></column>
+					<column><label>Message</label><name>MESSAGE</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                </mainmenuitem>
+                <mainmenuitem>
+                        <name>serverstorage</name>
+                        <label>Server Storage</label>
+                        <submenuitem>
+				<name>freescratch</name>
+				<label>Free Tapes</label>
+                                <query>select count(*)Scratch from libvolumes where status='Scratch'</query>
+				<info>Gives you a number of scratch tapes known to the current tsm server.</info>
+				<orderby></orderby>
+                                <header>
+					<column><label>Scratch</label><name></name></column>
+				</header>
+				<alerting>
+					<alert_comp>less</alert_comp>
+					<alert_val>10</alert_val>
+					<alert_field>0</alert_field>
+					<alert_col>red</alert_col>
+					<ok_col>green</ok_col>
+				</alerting>
+				<cache>no</cache>
+				<notforlibclient>yes</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>scratchpool</name>
+				<label>Free Tapes / Pool</label>
+                                <query>SELECT STGPOOLS.STGPOOL_NAME, STGPOOLS.MAXSCRATCH, Count(STGPOOLS.MAXSCRATCH) as "Allocated_SCRATCH", STGPOOLS.MAXSCRATCH-count(STGPOOLS.MAXSCRATCH) as "Remaining_SCRATCH" FROM STGPOOLS,VOLUMES WHERE (VOLUMES.STGPOOL_NAME = STGPOOLS.STGPOOL_NAME) AND ((STGPOOLS.DEVCLASS='LTO3DEVCL')) GROUP BY STGPOOLS.STGPOOL_NAME, STGPOOLS.MAXSCRATCH</query>
+				<info>Shows how many scratch tapes are available per pool. The numbers shown here are only defined max. values, not actual free tapes!</info>
+				<orderby>STGPOOLS.STGPOOL_NAME</orderby>
+				<alerting>
+					<alert_comp>equal</alert_comp>
+					<alert_val>0</alert_val>
+					<alert_field>3</alert_field>
+					<alert_col>red</alert_col>
+					<ok_col>green</ok_col>
+				</alerting>
+                                <header>
+					<column><label>Storagepool</label><name>STGPOOLS.STGPOOL_NAME</name></column>
+					<column><label>MAXSCRATCH</label><name>STGPOOLS.MAXSCRATCH</name></column>
+					<column><label>Allocated Scratch</label><name>Allocated_SCRATCH</name></column>
+					<column><label>Remaining Scratch</label><name>Remaining_SCRATCH</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+                                <name>stgpools</name>
+                                <label>Storagepools</label>
+                                <query>select STGPOOL_NAME, DEVCLASS, EST_CAPACITY_MB, PCT_UTILIZED, PCT_MIGR, HIGHMIG, LOWMIG, MIGR_RUNNING, NEXTSTGPOOL from stgpools</query>
+                                <info>Lists all storage pools</info>
+                                <orderby>STGPOOL_NAME</orderby>
+                                <alerting>
+                                        <alert_comp>equal</alert_comp>
+                                        <alert_val>YES</alert_val>
+                                        <alert_field>7</alert_field>
+                                        <alert_col>yellow</alert_col>
+                                        <ok_col></ok_col>
+                                </alerting>
+                                <header>
+                                        <column><label>Storagepool</label><name>STGPOOL_NAME</name></column>
+                                        <column><label>DevClass</label><name>DEVCLASS</name></column>
+                                        <column><label>Capacity (MB)</label><name>EST_CAPACITY_MB</name></column>
+                                        <column><label>Pct util</label><name>PCT_UTILIZED</name></column>
+                                        <column><label>Pct mig</label><name>PCT_MIGR</name></column>
+                                        <column><label>high mig</label><name>HIGHMIG</name></column>
+                                        <column><label>low mig</label><name>LOWMIG</name></column>
+                                        <column><label>mig running</label><name>MIGR_RUNNING</name></column>
+                                        <column><label>Next Storagepool</label><name>NEXTSTGPOOL</name></column>
+                                </header>
+                                <cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>spacereclamation</name>
+				<label>Space Reclamation</label>
+                                <query>select volume_name, pct_reclaim, stgpool_name from volumes where pct_reclaim >= 60</query>
+				<info>A list of volumes that could be reclaimed.</info>
+				<orderby>pct_reclaim</orderby>
+                                <header>
+					<column><label>Volume Name</label><name>volume_name</name></column>
+					<column><label>% reclaim</label><name>pct_reclaim</name></column>
+					<column><label>Storage Pool</label><name>stgpool_name</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>errortapes</name>
+				<label>Error Tapes</label>
+                                <query>select VOLUME_NAME, ACCESS from volumes where access !='READWRITE'</query>
+				<info>A list of volumes that are not in READWRITE state.</info>
+				<orderby>VOLUME_NAME</orderby>
+                                <header>
+					<column><label>Volume Name</label><name>VOLUME_NAME</name></column>
+					<column><label>Access</label><name>ACCESS</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>volumes</name>
+				<label>Volumes</label>
+                                <query>select volume_name, stgpool_name, est_capacity_mb, pct_utilized, status, access, error_state, write_errors, read_errors from volumes</query>
+				<info>A list of all volumes known to this tsm server.</info>
+				<orderby>volume_name</orderby>
+				<alerting>
+					<alert_comp>notequal</alert_comp>
+					<alert_val>READWRITE</alert_val>
+					<alert_field>5</alert_field>
+					<alert_col>red</alert_col>
+					<ok_col>green</ok_col>
+				</alerting>
+                                <header>
+					<column><label>Volume Name</label><name>volume_name</name></column>
+					<column><label>Storage Pool</label><name>stgpool_name</name></column>
+					<column><label>Capacity (MB)</label><name>est_capacity_mb</name></column>
+					<column><label>Usage (%)</label><name>pct_utilized</name></column>
+					<column><label>Status</label><name>status</name></column>
+					<column><label>Access</label><name>access</name></column>
+					<column><label>Err State</label><name>error_state</name></column>
+					<column><label>Write Err</label><name>write_errors</name></column>
+					<column><label>Read Err</label><name>read_errors</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>libvolumes</name>
+				<label>Library Volumes</label>
+                                <query>select LIBRARY_NAME, VOLUME_NAME, STATUS, OWNER, LAST_USE, DEVTYPE, MEDIATYPE from libvolumes</query>
+				<info>An inventory of all libraries attached to this tsm server.</info>
+				<orderby>LIBRARY_NAME</orderby>
+                                <header>
+					<column><label>Library</label><name>LIBRARY_NAME</name></column>
+					<column><label>Volume Name</label><name>VOLUME_NAME</name></column>
+					<column><label>Status</label><name>STATUS</name></column>
+					<column><label>Owner</label><name>OWNER</name></column>
+					<column><label>Last Use</label><name>LAST_USE</name></column>
+					<column><label>Device Type</label><name>DEVTYPE</name></column>
+					<column><label>Media Type</label><name>MEDIATYPE</name></column>
+				</header>
+				<cache>yes</cache>
+				<notforlibclient>yes</notforlibclient>
+                        </submenuitem>
+                </mainmenuitem>
+                <mainmenuitem>
+                        <name>offsite</name>
+                        <label>Offsite Management</label>
+                        <submenuitem>
+				<name>backupsets</name>
+				<label>Backupsets</label>
+                                <query>select NODE_NAME, BACKUPSET_NAME, DATE_TIME, DESCRIPTION from backupsets</query>
+				<info>A list of all active Backupsets.</info>
+				<orderby>NODE_NAME</orderby>
+                                <header>
+					<column><label>Node Name</label><name>NODE_NAME</name></column>
+					<column><label>Backupset Name</label><name>BACKUPSET_NAME</name></column>
+					<column><label>Date</label><name>DATE_TIME</name></column>
+					<column><label>Description</label><name>DESCRIPTION</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>exports</name>
+				<label>Exports</label>
+                                <query>select DATE_TIME, VOLUME_SEQ, DEVCLASS, VOLUME_NAME, LOCATION, COMMAND from volhistory where TYPE='EXPORT'</query>
+				<info>A list of all Exports.</info>
+				<orderby>DATE_TIME</orderby>
+                                <header>
+					<column><label>Date</label><name>DATE_TIME</name></column>
+					<column><label>SEQ</label><name>VOLUME_SEQ</name></column>
+					<column><label>Dev Class</label><name>DEVCLASS</name></column>
+					<column><label>Vol Name</label><name>VOLUME_NAME</name></column>
+					<column><label>Location</label><name>LOCATION</name></column>
+					<column><label>Command</label><name>COMMAND</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                        <submenuitem>
+				<name>offsitetapes</name>
+				<label>Offsite Tapes</label>
+                                <query>select VOLUME_NAME, TYPE, VOLUME_SEQ, DATE_TIME, COMMAND from volhistory where type='BACKUPSET' or type='EXPORT' and volume_name not in (select volume_name from libvolumes)</query>
+				<info>A list of your offsite tapes (all backupsets and exports that are currently not in you tape library)</info>
+				<orderby>DATE_TIME</orderby>
+                                <header>
+					<column><label>Volume Name</label><name>VOLUME_NAME</name></column>
+					<column><label>Type</label><name>TYPE</name></column>
+					<column><label>Vol Seq</label><name>VOLUME_SEQ</name></column>
+					<column><label>Date/Time</label><name>DATE_TIME</name></column>
+					<column><label>Command</label><name>COMMAND</name></column>
+				</header>
+				<cache>no</cache>
+				<notforlibclient>no</notforlibclient>
+                        </submenuitem>
+                </mainmenuitem>
+        </navigation>
+	<indexquery>
+                <infobox>
+			<name>totaldata</name>
+			<infoboxitem>
+				<name>totalstorage</name>
+				<query>SELECT CAST(FLOAT(SUM(logical_mb)) / 1024 / 1024 AS DEC(8,3)) FROM occupancy</query>
+                                <unit>TB</unit>
+				<header>Total Data stored</header>
+				<cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+			<infoboxitem>
+				<name>totalbackup24h</name>
+				<query>SELECT cast(float(sum(bytes))/1024/1024/1024/1024 as dec(8,3)) FROM SUMMARY WHERE ACTIVITY='BACKUP' AND (CURRENT_TIMESTAMP-END_TIME)HOURS LESS= 24 HOURS</query>
+                                <unit>TB</unit>
+				<header>Total Data backuped</header>
+				<cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+			<infoboxitem>
+				<name>totalarchive24h</name>
+				<query>SELECT cast(float(sum(bytes))/1024/1024/1024/1024 as dec(8,3)) FROM SUMMARY WHERE ACTIVITY='ARCHIVE' AND (CURRENT_TIMESTAMP-END_TIME)HOURS LESS= 24 HOURS</query>
+				<unit>TB</unit>
+				<header>Total Data archived</header>
+				<cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+		</infobox>
+		<infobox>
+			<name>healthdata</name>
+			<infoboxitem>
+				<name>scratch</name>
+                                <query>SELECT COUNT(*) FROM libvolumes WHERE status='Scratch'</query>
+                                <header>Scratch Tapes</header>
+                                <alert_comp>less</alert_comp>
+                                <alert_val>10</alert_val>
+                                <alert_col>red</alert_col>
+				<notforlibclient>yes</notforlibclient>
+			</infoboxitem>
+			<infoboxitem>
+				<name>errortapes</name>
+                                <query>SELECT COUNT(*) FROM volumes WHERE error_state='YES'</query>
+                                <header>Volumes with Errors</header>
+                                <alert_comp>more</alert_comp>
+                                <alert_val>0</alert_val>
+                                <alert_col>red</alert_col>
+				<cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+                        <infoboxitem>
+				<name>unavailabletapes</name>
+                                <query>SELECT COUNT(*) FROM volumes WHERE access='UNAVAILABLE'</query>
+                                <header>Unavailable Volumes</header>
+                                <alert_comp>more</alert_comp>
+                                <alert_val>0</alert_val>
+                                <alert_col>red</alert_col>
+				<cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+			<infoboxitem>
+                                <name>offlinedrives</name>
+                                <query>SELECT COUNT(*) FROM drives WHERE NOT online='YES'</query>
+                                <header>Drives Offline</header>
+                                <alert_comp>more</alert_comp>
+                                <alert_val>0</alert_val>
+                                <alert_col>red</alert_col>
+				<cache>yes</cache>
+				<notforlibclient>yes</notforlibclient>
+			</infoboxitem>
+			<infoboxitem>
+                                <name>offlinepaths</name>
+                                <query>SELECT COUNT(*) FROM paths WHERE NOT online='YES'</query>
+                                <header>Paths Offline</header>
+                                <alert_comp>more</alert_comp>
+                                <alert_val>0</alert_val>
+                                <alert_col>red</alert_col>
+				<cache>yes</cache>
+				<notforlibclient>yes</notforlibclient>
+			</infoboxitem>
+		</infobox>
+		<infobox>
+			<name>database</name>
+                        <infoboxitem>
+				<name>cachehit</name>
+                                <query>SELECT CACHE_HIT_PCT from db</query>
+                                <header>Cache Hit</header>
+                                <unit>%</unit>
+                                <alert_comp>less</alert_comp>
+                                <alert_val>98.0</alert_val>
+                                <alert_col>yellow</alert_col>
+				<cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+			<infoboxitem>
+                                <name>dbusage</name>
+                                <query>SELECT pct_utilized FROM db</query>
+                                <header>Database Usage</header>
+                                <unit>%</unit>
+                                <alert_comp>more</alert_comp>
+                                <alert_val>90.0</alert_val>
+                                <alert_col>red</alert_col>
+				<cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+			<infoboxitem>
+                                <name>logusage</name>
+                                <query>SELECT pct_utilized FROM log</query>
+                                <header>Log Usage</header>
+                                <unit>%</unit>
+                                <alert_comp>more</alert_comp>
+                                <alert_val>90.0</alert_val>
+                                <alert_col>red</alert_col>
+				<cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+			<infoboxitem>
+                                <name>dbfrag</name>
+                                <query>SELECT CAST((100 - (CAST(MAX_REDUCTION_MB AS FLOAT) * 256 ) / (CAST(USABLE_PAGES AS FLOAT) - CAST(USED_PAGES AS FLOAT) ) * 100) AS DECIMAL(4,2)) AS PERCENT_FRAG FROM DB</query>
+                                <header>DB Fragmentation</header>
+                                <unit>%</unit>
+                                <alert_comp>more</alert_comp>
+                                <alert_val>10.0</alert_val>
+                                <alert_col>red</alert_col>
+				<cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+			<infoboxitem>
+                                <name>volsnotsync</name>
+                                <query>SELECT COUNT(*) FROM dbvolumes WHERE ( NOT copy1_status='Synchronized' OR NOT copy2_status='Synchronized' OR NOT copy3_status='Synchronized')</query>
+                                <header>DB Volumes not synced</header>
+                                <alert_comp>more</alert_comp>
+                                <alert_val>0</alert_val>
+                                <alert_col>red</alert_col>
+				<cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+			<infoboxitem>
+                                <name>logsnotsync</name>
+                                <query>SELECT COUNT(*) FROM logvolumes WHERE ( NOT copy1_status='Synchronized' OR NOT copy2_status='Synchronized' OR NOT copy3_status='Synchronized')</query>
+                                <header>DB Logs not synced</header>
+                                <alert_comp>more</alert_comp>
+                                <alert_val>0</alert_val>
+                                <alert_col>red</alert_col>
+				<cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+			<infoboxitem>
+                                <name>dblastbackup</name>
+                                <query>SELECT last_backup_date FROM db</query>
+                                <header>Last DB Backup</header>
+				<cache>yes</cache>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+		</infobox>
+		<infobox>
+			<name>schedules</name>
+			<infoboxitem>
+				<name>failedasched</name>
+                                <query>SELECT count(*) FROM events WHERE status NOTEQUAL 'Completed' AND status NOTEQUAL 'Future' AND status NOTEQUAL 'Started' AND status NOTEQUAL 'Restarted' and status NOTEQUAL 'In Progres' and status NOTEQUAL 'Pending' and NODE_NAME is NULL</query>
+                                <header>Failed Admin Schedules</header>
+                                <alert_comp>more</alert_comp>
+                                <alert_val>0</alert_val>
+                                <alert_col>red</alert_col>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+			<infoboxitem>
+                                <name>failedcsched</name>
+                                <query>SELECT count(*) FROM events WHERE status NOTEQUAL 'Completed' AND status NOTEQUAL 'Future' AND status NOTEQUAL 'Started' AND status NOTEQUAL 'Restarted' and status NOTEQUAL 'In Progres' and status NOTEQUAL 'Pending' AND NODE_NAME is NOT NULL</query>
+                                <header>Failed Client Schedules</header>
+                                <alert_comp>more</alert_comp>
+                                <alert_val>0</alert_val>
+                                <alert_col>red</alert_col>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+			<infoboxitem>
+                                <name>runningcsched</name>
+                                <query>SELECT count(*) FROM events WHERE status NOTEQUAL 'Completed' AND status NOTEQUAL 'Future' AND (status='In Progres' OR status='Started' OR status='Restarted') and NODE_NAME is NOT NULL</query>
+                                <header>Running Client Schedules</header>
+                                <alert_comp>more</alert_comp>
+                                <alert_val>0</alert_val>
+                                <alert_col>yellow</alert_col>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+			<infoboxitem>
+                                <name>runningasched</name>
+                                <query>SELECT count(*) FROM events WHERE status NOTEQUAL 'Completed' AND status NOTEQUAL 'Future' AND (status='In Progre%' OR status='Started' OR status='Restarted') and NODE_NAME is NULL</query>
+                                <header>Running Admin Schedules</header>
+                                <alert_comp>more</alert_comp>
+                                <alert_val>0</alert_val>
+                                <alert_col>yellow</alert_col>
+				<notforlibclient>no</notforlibclient>
+			</infoboxitem>
+		</infobox>
+	</indexquery>
+</config>
