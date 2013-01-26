@@ -50,26 +50,26 @@ Configuration
 There is only one file that needs to be edited: includes/server.xml
   
 Enter here your server(s) like described below. The "defaultserver" is the server that will be displayed by default.
-  
-<code>
-  <config>
-        <serverarray>
-                <defaultserver>TSMSRV1</defaultserver>
-                <server>
-                        <servername>TSMSRV1</servername>
-                        <description>Subnet2</description>
-                        <ip>172.xx.x.xxx</ip>
-                        <port>1500</port>
-                </server>
-                <server>
-                        <servername>TSMSRV2</servername>
-                        <description>Subnet2</description>
-                        <ip>172.xx.xxx.xx</ip>
-                        <port>1500</port>
-                </server>
-        </serverarray>
+```xml
+  <config>  
+        <serverarray>  
+                <defaultserver>TSMSRV1</defaultserver>  
+                <server>  
+                        <servername>TSMSRV1</servername>  
+                        <description>Subnet2</description>  
+                        <ip>172.xx.x.xxx</ip>  
+                        <port>1500</port>  
+                </server>  
+                <server>  
+                        <servername>TSMSRV2</servername>  
+                        <description>Subnet2</description>  
+                        <ip>172.xx.xxx.xx</ip>  
+                        <port>1500</port>  
+                </server>  
+        </serverarray>  
   </config>
-</code> 
+</code>   
+```xml
   
 Usage
 ----
